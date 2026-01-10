@@ -1,0 +1,3 @@
+{
+  "extends": "@News-Monkey/config/tsconfig.base.json"
+}
