@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
-
-import { Geist, Geist_Mono } from "next/font/google";
-
+import { Inter, Outfit } from "next/font/google";
 import "../index.css";
-import Header from "@/components/header";
 import Providers from "@/components/providers";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import ThreeBackground from "@/components/ThreeBackground";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "News-Monkey",
-  description: "News-Monkey",
+  title: "NewsType | Master Your Typing with Real News",
+  description: "Improve your typing speed and accuracy while staying updated with the latest news from around the world.",
 };
 
 export default function RootLayout({
@@ -27,13 +27,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body className={`${inter.variable} ${outfit.variable} antialiased min-h-screen flex flex-col`}>
         <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">
-            <Header />
+          <ThreeBackground />
+          <Navbar />
+          <main className="flex-grow pt-16">
             {children}
-          </div>
+          </main>
+          <Footer />
         </Providers>
       </body>
     </html>
