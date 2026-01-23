@@ -13,7 +13,16 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-    const { duration, setDuration } = useTypingStore();
+    const {
+        duration,
+        setDuration,
+        soundEnabled,
+        toggleSound,
+        soundProfile,
+        setSoundProfile,
+        focusMode,
+        toggleFocusMode
+    } = useTypingStore();
 
     const settingsGroups = [
         {
@@ -46,10 +55,34 @@ export default function SettingsPage() {
             items: [
                 {
                     label: "Sound Effects",
-                    desc: "Play subtle mechanical keyboard sounds as you type.",
+                    desc: "Play mechanical keyboard sounds as you type.",
                     component: (
-                        <div className="w-12 h-6 bg-primary/20 rounded-full relative cursor-not-allowed">
-                            <div className="absolute right-1 top-1 w-4 h-4 bg-primary rounded-full" />
+                        <button
+                            onClick={toggleSound}
+                            className={`w-12 h-6 rounded-full relative transition-colors ${soundEnabled ? 'bg-primary' : 'bg-white/10'}`}
+                        >
+                            <motion.div
+                                animate={{ x: soundEnabled ? 24 : 4 }}
+                                className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                            />
+                        </button>
+                    )
+                },
+                {
+                    label: "Sound Profile",
+                    desc: "Choose your preferred mechanical switch or sci-fi sound.",
+                    component: (
+                        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 flex-wrap">
+                            {(['mechanical', 'clicky', 'thock', 'blaster', 'lightsaber'] as const).map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setSoundProfile(p)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all ${soundProfile === p ? 'bg-primary text-primary-foreground shadow-lg' : 'hover:bg-white/5 text-muted-foreground'
+                                        }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
                         </div>
                     )
                 },
@@ -57,9 +90,15 @@ export default function SettingsPage() {
                     label: "Focus Mode",
                     desc: "Automatically hide the Navbar and Stats during typing sessions.",
                     component: (
-                        <div className="w-12 h-6 bg-white/10 rounded-full relative cursor-not-allowed">
-                            <div className="absolute left-1 top-1 w-4 h-4 bg-muted-foreground rounded-full" />
-                        </div>
+                        <button
+                            onClick={toggleFocusMode}
+                            className={`w-12 h-6 rounded-full relative transition-colors ${focusMode ? 'bg-primary' : 'bg-white/10'}`}
+                        >
+                            <motion.div
+                                animate={{ x: focusMode ? 24 : 4 }}
+                                className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                            />
+                        </button>
                     )
                 }
             ]
@@ -99,14 +138,6 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     ))}
-                </div>
-
-                <div className="p-8 rounded-[2rem] bg-amber-500/10 border border-amber-500/20 flex gap-4">
-                    <ShieldCheck className="w-6 h-6 text-amber-500 shrink-0" />
-                    <div className="space-y-1">
-                        <p className="font-bold text-amber-500">Experimental Features</p>
-                        <p className="text-sm text-amber-500/80">Some settings like Sound Effects and Focus Mode are currently in preview and will be fully enabled in the next update.</p>
-                    </div>
                 </div>
             </motion.div>
         </div>

@@ -15,32 +15,28 @@ export default function PracticeStats() {
         isPaused,
         isFinished,
         finishTest,
-        focusMode
+        focusMode,
+        timeLeft,
+        setTimeLeft
     } = useTypingStore();
-
-    const [timeLeft, setTimeLeft] = useState(duration);
-
-    useEffect(() => {
-        setTimeLeft(duration);
-    }, [duration]);
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
 
         if (isActive && !isPaused && !isFinished && timeLeft > 0) {
             interval = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev <= 1) {
-                        finishTest();
-                        return 0;
-                    }
-                    return prev - 1;
-                });
+                const newTime = timeLeft - 1;
+                if (newTime <= 0) {
+                    setTimeLeft(0);
+                    finishTest();
+                } else {
+                    setTimeLeft(newTime);
+                }
             }, 1000);
         }
 
         return () => clearInterval(interval);
-    }, [isActive, isPaused, isFinished, timeLeft, finishTest]);
+    }, [isActive, isPaused, isFinished, timeLeft, finishTest, setTimeLeft]);
 
     const stats = [
         { label: 'WPM', value: wpm, icon: Zap, color: 'text-yellow-400' },

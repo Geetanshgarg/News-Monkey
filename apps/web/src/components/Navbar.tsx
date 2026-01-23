@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Newspaper, Keyboard, BarChart2, Settings, Info } from 'lucide-react';
+import { Newspaper, Keyboard, LayoutDashboard, Settings, Info } from 'lucide-react';
 
 const Navbar = () => {
     const pathname = usePathname();
 
     const navItems = [
         { name: 'Practice', href: '/practice' as any, icon: Keyboard },
-        { name: 'Results', href: '/results' as any, icon: BarChart2 },
+        { name: 'Dashboard', href: '/dashboard' as any, icon: LayoutDashboard },
         { name: 'Settings', href: '/settings' as any, icon: Settings },
         { name: 'About', href: '/about' as any, icon: Info },
     ];

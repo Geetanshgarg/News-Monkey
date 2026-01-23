@@ -8,9 +8,15 @@ import { useState, useRef, Suspense } from "react";
 
 function StarBackground(props: any) {
     const ref: any = useRef(null);
-    const [sphere] = useState(() =>
-        random.inSphere(new Float32Array(5000), { radius: 1.2 })
-    );
+    const [sphere] = useState(() => {
+        const arr = new Float32Array(15000);
+        const points = random.inSphere(arr, { radius: 1.2 });
+        // Emergency cleanup for any NaN values from the library
+        for (let i = 0; i < points.length; i++) {
+            if (isNaN(points[i])) points[i] = 0;
+        }
+        return points;
+    });
 
     useFrame((state, delta) => {
         if (ref.current) {
@@ -21,7 +27,7 @@ function StarBackground(props: any) {
 
     return (
         <group rotation={[0, 0, Math.PI / 4]}>
-            <Points ref={ref} positions={sphere} stride={3} frustumCulled {...props}>
+            <Points ref={ref} positions={sphere} stride={3} frustumCulled={false} {...props}>
                 <PointMaterial
                     transparent
                     color="#3b82f6"

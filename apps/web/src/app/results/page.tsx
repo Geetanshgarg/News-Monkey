@@ -11,13 +11,16 @@ import {
     Newspaper,
     ArrowRight,
     BrainCircuit,
-    Award
+    Award,
+    LayoutDashboard
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 
 export default function ResultsPage() {
+    const router = useRouter();
     const {
         wpm,
         accuracy,
@@ -25,7 +28,8 @@ export default function ResultsPage() {
         totalCharsTyped,
         isFinished,
         article,
-        resetTest
+        resetTest,
+        repeatArticle
     } = useTypingStore();
 
     useEffect(() => {
@@ -124,22 +128,28 @@ export default function ResultsPage() {
                 <div className="flex flex-col sm:flex-row gap-6 justify-center">
                     <button
                         onClick={() => {
-                            resetTest();
-                            window.location.href = "/practice";
+                            useTypingStore.getState().repeatArticle();
+                            router.push("/practice");
                         }}
-                        className="px-10 py-5 bg-primary text-primary-foreground rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3"
+                        className="px-10 py-5 bg-white/5 border border-white/10 rounded-[2rem] font-black text-xl hover:bg-white/10 transition-all backdrop-blur-xl flex items-center justify-center gap-3"
                     >
                         <Repeat className="w-6 h-6" />
-                        Retry Same Category
+                        Repeat
                     </button>
                     <Link
                         href={"/practice" as any}
                         onClick={resetTest}
-                        className="px-10 py-5 bg-white/5 border border-white/10 rounded-[2rem] font-black text-xl hover:bg-white/10 transition-all backdrop-blur-xl flex items-center justify-center gap-3"
+                        className="px-10 py-5 bg-primary text-primary-foreground rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3"
                     >
                         <Newspaper className="w-6 h-6" />
-                        New Article
-                        <ArrowRight className="w-6 h-6" />
+                        Next
+                    </Link>
+                    <Link
+                        href={"/dashboard" as any}
+                        className="px-10 py-5 bg-white/5 border border-white/10 rounded-[2rem] font-black text-xl hover:bg-white/10 transition-all backdrop-blur-xl flex items-center justify-center gap-3"
+                    >
+                        <LayoutDashboard className="w-6 h-6" />
+                        Dashboard
                     </Link>
                 </div>
 

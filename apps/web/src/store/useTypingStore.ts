@@ -6,12 +6,24 @@ interface Article {
   url: string;
   source: string;
   category: string;
+  publishedAt: string;
+}
+
+export interface HistoryItem {
+  id: string;
+  article: Article;
+  wpm: number;
+  accuracy: number;
+  cpm: number;
+  date: string;
+  region: 'us' | 'in';
 }
 
 interface TypingState {
   // Config
   duration: number; // in seconds
   category: string;
+  region: 'us' | 'in';
 
   // Article Data
   article: Article | null;
@@ -34,10 +46,15 @@ interface TypingState {
   wpm: number;
   accuracy: number;
   cpm: number;
+  timeLeft: number;
 
   // Settings
   soundEnabled: boolean;
+  soundProfile: 'mechanical' | 'clicky' | 'thock' | 'blaster' | 'lightsaber';
   focusMode: boolean;
+
+  // Persistence
+  history: HistoryItem[];
 
   // Actions
   setDuration: (duration: number) => void;
@@ -51,122 +68,190 @@ interface TypingState {
   updateInput: (input: string) => void;
   calculateStats: () => void;
   toggleSound: () => void;
+  setSoundProfile: (profile: 'mechanical' | 'clicky' | 'thock' | 'blaster' | 'lightsaber') => void;
   toggleFocusMode: () => void;
+  repeatArticle: () => void;
+  setTimeLeft: (time: number) => void;
+  setRegion: (region: 'us' | 'in') => void;
+  clearHistory: () => void;
 }
 
-export const useTypingStore = create<TypingState>((set, get) => ({
-  duration: 60,
-  category: 'general',
-  article: null,
-  startTime: null,
-  endTime: null,
-  isPaused: false,
-  isActive: false,
-  isFinished: false,
-  userInput: '',
-  cursorIndex: 0,
-  errors: 0,
-  totalCharsTyped: 0,
-  correctCharsTyped: 0,
-  wpm: 0,
-  accuracy: 0,
-  cpm: 0,
-  soundEnabled: true,
-  focusMode: false,
+import { persist, createJSONStorage } from 'zustand/middleware';
 
-  setDuration: (duration) => set({ duration }),
-  setCategory: (category) => set({ category }),
-  setArticle: (article) => set({ article, userInput: '', cursorIndex: 0, errors: 0, isActive: false, isFinished: false }),
+export const useTypingStore = create<TypingState>()(
+  persist(
+    (set, get) => ({
+      duration: 60,
+      category: 'general',
+      region: 'us',
+      article: null,
+      startTime: null,
+      endTime: null,
+      isPaused: false,
+      isActive: false,
+      isFinished: false,
+      userInput: '',
+      cursorIndex: 0,
+      errors: 0,
+      totalCharsTyped: 0,
+      correctCharsTyped: 0,
+      wpm: 0,
+      accuracy: 0,
+      cpm: 0,
+      timeLeft: 60,
+      soundEnabled: true,
+      soundProfile: 'mechanical',
+      focusMode: false,
+      history: [],
 
-  startTest: () => set({
-    startTime: Date.now(),
-    isActive: true,
-    isPaused: false,
-    isFinished: false,
-    userInput: '',
-    cursorIndex: 0,
-    errors: 0,
-    totalCharsTyped: 0,
-    correctCharsTyped: 0,
-    wpm: 0,
-    accuracy: 100,
-    cpm: 0
-  }),
+      setDuration: (duration) => set({ duration, timeLeft: duration }),
+      setCategory: (category) => set({ category }),
+      setArticle: (article) => set({ article, userInput: '', cursorIndex: 0, errors: 0, isActive: false, isFinished: false }),
 
-  pauseTest: () => set({ isPaused: true, isActive: false }),
-  resumeTest: () => set({ isPaused: false, isActive: true }),
+      startTest: () => set({
+        startTime: Date.now(),
+        isActive: true,
+        isPaused: false,
+        isFinished: false,
+        userInput: '',
+        cursorIndex: 0,
+        errors: 0,
+        totalCharsTyped: 0,
+        correctCharsTyped: 0,
+        wpm: 0,
+        accuracy: 100,
+        cpm: 0,
+        timeLeft: get().duration
+      }),
 
-  resetTest: () => set({
-    isActive: false,
-    isPaused: false,
-    isFinished: false,
-    userInput: '',
-    cursorIndex: 0,
-    errors: 0,
-    startTime: null,
-    endTime: null,
-    wpm: 0,
-    accuracy: 0,
-    cpm: 0
-  }),
+      pauseTest: () => set({ isPaused: true, isActive: false }),
+      resumeTest: () => set({ isPaused: false, isActive: true }),
 
-  finishTest: () => {
-    const { calculateStats } = get();
-    calculateStats();
-    set({ isFinished: true, isActive: false, endTime: Date.now() });
-  },
+      resetTest: () => set({
+        article: null,
+        isActive: false,
+        isPaused: false,
+        isFinished: false,
+        userInput: '',
+        cursorIndex: 0,
+        errors: 0,
+        startTime: null,
+        endTime: null,
+        wpm: 0,
+        accuracy: 0,
+        cpm: 0,
+        timeLeft: get().duration
+      }),
 
-  updateInput: (input: string) => {
-    const { article, isActive, startTest, isFinished } = get();
-    if (isFinished) return;
-    if (!isActive) startTest();
+      finishTest: () => {
+        const { calculateStats, article, wpm, accuracy, cpm, region, history } = get();
+        calculateStats();
 
-    const targetText = article?.content || '';
-    let errors = 0;
-    let correctChars = 0;
+        // Final stats might need one last update if finishTest is called immediately after last char
+        const now = Date.now();
+        const stats = get(); // grab latest after calculateStats
 
-    for (let i = 0; i < input.length; i++) {
-      if (input[i] !== targetText[i]) {
-        errors++;
-      } else {
-        correctChars++;
-      }
+        if (article) {
+          const newItem: HistoryItem = {
+            id: Math.random().toString(36).substr(2, 9),
+            article,
+            wpm: stats.wpm,
+            accuracy: stats.accuracy,
+            cpm: stats.cpm,
+            date: new Date().toISOString(),
+            region
+          };
+          set({ history: [newItem, ...history].slice(0, 50) }); // Keep last 50
+        }
+
+        set({ isFinished: true, isActive: false, endTime: now });
+      },
+
+      updateInput: (input: string) => {
+        const { article, isActive, startTest, isFinished } = get();
+        if (isFinished) return;
+        if (!isActive) startTest();
+
+        const targetText = article?.content || '';
+        let errors = 0;
+        let correctChars = 0;
+
+        for (let i = 0; i < input.length; i++) {
+          if (input[i] !== targetText[i]) {
+            errors++;
+          } else {
+            correctChars++;
+          }
+        }
+
+        set({
+          userInput: input,
+          cursorIndex: input.length,
+          errors,
+          totalCharsTyped: input.length,
+          correctCharsTyped: correctChars
+        });
+
+        if (input.length === targetText.length) {
+          get().finishTest();
+        } else {
+          get().calculateStats();
+        }
+      },
+
+      calculateStats: () => {
+        const { startTime, correctCharsTyped, totalCharsTyped, isFinished, endTime } = get();
+        if (!startTime) return;
+
+        const now = isFinished && endTime ? endTime : Date.now();
+        const timeElapsedMinutes = (now - startTime) / 60000;
+
+        if (timeElapsedMinutes <= 0) return;
+
+        // Standard WPM calculation: (characters / 5) / minutes
+        const wpm = Math.round((correctCharsTyped / 5) / timeElapsedMinutes);
+        const cpm = Math.round(correctCharsTyped / timeElapsedMinutes);
+        const accuracy = totalCharsTyped > 0
+          ? Math.round((correctCharsTyped / totalCharsTyped) * 100)
+          : 100;
+
+        set({ wpm, cpm, accuracy });
+      },
+
+      toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
+      setSoundProfile: (soundProfile) => set({ soundProfile }),
+      toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
+      repeatArticle: () => {
+        const { article } = get();
+        if (article) {
+          set({
+            userInput: '',
+            cursorIndex: 0,
+            errors: 0,
+            isActive: false,
+            isFinished: false,
+            startTime: null,
+            endTime: null,
+            wpm: 0,
+            accuracy: 100,
+            cpm: 0,
+            timeLeft: get().duration
+          });
+        }
+      },
+      setTimeLeft: (timeLeft) => set({ timeLeft }),
+      setRegion: (region) => set({ region }),
+      clearHistory: () => set({ history: [] })
+    }),
+    {
+      name: 'news-monkey-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        history: state.history,
+        soundEnabled: state.soundEnabled,
+        soundProfile: state.soundProfile,
+        focusMode: state.focusMode
+      }),
     }
-
-    set({
-      userInput: input,
-      cursorIndex: input.length,
-      errors,
-      totalCharsTyped: input.length,
-      correctCharsTyped: correctChars
-    });
-
-    if (input.length === targetText.length) {
-      get().finishTest();
-    } else {
-      get().calculateStats();
-    }
-  },
-
-  calculateStats: () => {
-    const { startTime, correctCharsTyped, totalCharsTyped, isFinished, endTime } = get();
-    if (!startTime) return;
-
-    const now = isFinished && endTime ? endTime : Date.now();
-    const timeElapsedMinutes = (now - startTime) / 60000;
-
-    if (timeElapsedMinutes <= 0) return;
-
-    // Standard WPM calculation: (characters / 5) / minutes
-    const wpm = Math.round((correctCharsTyped / 5) / timeElapsedMinutes);
-    const cpm = Math.round(correctCharsTyped / timeElapsedMinutes);
-    const accuracy = totalCharsTyped > 0
-      ? Math.round((correctCharsTyped / totalCharsTyped) * 100)
-      : 100;
-
-    set({ wpm, cpm, accuracy });
-  },
-
-  toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
-  toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode }))
-}));
+  )
+);

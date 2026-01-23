@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTypingStore } from '@/store/useTypingStore';
-import { Keyboard } from 'lucide-react';
+import { Keyboard, ExternalLink, Calendar } from 'lucide-react';
+import { soundManager } from '@/lib/SoundManager';
 
 export default function TypingArea() {
     const {
@@ -15,6 +16,7 @@ export default function TypingArea() {
         isFinished,
         cursorIndex,
         soundEnabled,
+        soundProfile,
         focusMode,
         toggleFocusMode,
         pauseTest,
@@ -26,32 +28,16 @@ export default function TypingArea() {
     const [focus, setFocus] = useState(false);
     const [cheatWarning, setCheatWarning] = useState(false);
 
-    // Mechanical Click Audio Logic
-    const playClick = () => {
-        if (!soundEnabled) return;
-        try {
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(150, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
-
-            gain.gain.setValueAtTime(0.05, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            osc.start();
-            osc.stop(ctx.currentTime + 0.1);
-        } catch (e) {
-            console.error("Audio error", e);
-        }
-    };
+    // Initialize audio on first interaction
+    useEffect(() => {
+        const initAudio = () => soundManager.init();
+        window.addEventListener('keydown', initAudio, { once: true });
+        window.addEventListener('click', initAudio, { once: true });
+        return () => {
+            window.removeEventListener('keydown', initAudio);
+            window.removeEventListener('click', initAudio);
+        };
+    }, []);
 
     useEffect(() => {
         if (isActive && !isPaused && !isFinished) {
@@ -73,7 +59,7 @@ export default function TypingArea() {
 
     const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         if (isFinished) return;
-        playClick();
+        if (soundEnabled) soundManager.play(soundProfile);
         updateInput(e.target.value);
     };
 
@@ -97,11 +83,59 @@ export default function TypingArea() {
                     top: cursorTop - 120,
                     behavior: 'smooth'
                 });
+            } else if (cursorIndex === 0) {
+                container.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
     }, [cursorIndex]);
 
     const text = article?.content || "";
+
+    const renderedChars = useMemo(() => {
+        const words: { char: string, index: number }[][] = [];
+        let currentWord: { char: string, index: number }[] = [];
+
+        text.split('').forEach((char, i) => {
+            currentWord.push({ char, index: i });
+            if (char === ' ' || char === '\n') {
+                words.push(currentWord);
+                currentWord = [];
+            }
+        });
+        if (currentWord.length > 0) words.push(currentWord);
+
+        return words.map((word, wordIdx) => (
+            <span key={wordIdx} className="inline-block">
+                {word.map(({ char, index: i }) => {
+                    let color = 'text-muted-foreground/30';
+                    const isTyped = i < userInput.length;
+                    const isCorrect = isTyped && userInput[i] === text[i];
+                    const isCurrent = i === userInput.length;
+
+                    if (isTyped) {
+                        color = isCorrect ? 'text-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]' : 'text-red-500 bg-red-500/10 rounded-sm';
+                    }
+
+                    return (
+                        <span
+                            key={i}
+                            className={`${color} transition-colors duration-150 relative inline-block min-w-[0.5ch]`}
+                            id={isCurrent ? 'typing-cursor' : undefined}
+                        >
+                            {char === '\n' ? <br /> : char}
+                            {isCurrent && focus && (
+                                <motion.span
+                                    className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+                                    animate={{ opacity: [0.2, 1, 0.2] }}
+                                    transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }}
+                                />
+                            )}
+                        </span>
+                    );
+                })}
+            </span>
+        ));
+    }, [text, userInput, focus]);
 
     return (
         <div className={`relative w-full max-w-4xl mx-auto group transition-all duration-700 ${focusMode && isActive ? 'mt-4 scale-105' : 'mt-12'}`}>
@@ -110,40 +144,12 @@ export default function TypingArea() {
                 ref={scrollRef}
                 onClick={() => inputRef.current?.focus()}
                 className={`relative min-h-[300px] max-h-[400px] overflow-y-auto p-12 rounded-[2.5rem] border transition-all duration-500 cursor-text scrollbar-hide ${focus
-                        ? 'bg-black/60 border-primary/40 shadow-[0_0_80px_rgba(59,130,246,0.1)] ring-1 ring-primary/20'
-                        : 'bg-black/20 border-white/5 shadow-xl'
+                    ? 'bg-black/60 border-primary/40 shadow-[0_0_80px_rgba(59,130,246,0.1)] ring-1 ring-primary/20'
+                    : 'bg-black/20 border-white/5 shadow-xl'
                     }`}
             >
                 <div className={`relative text-2xl md:text-3xl font-medium leading-relaxed tracking-tight select-none transition-all ${focusMode && isActive ? 'opacity-100' : 'opacity-80 hover:opacity-100'}`}>
-                    {text.split('').map((char, i) => {
-                        let color = 'text-muted-foreground/30';
-                        let isTyped = i < userInput.length;
-                        let isCorrect = isTyped && userInput[i] === text[i];
-                        let isCurrent = i === userInput.length;
-
-                        if (isTyped) {
-                            color = isCorrect ? 'text-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]' : 'text-red-500 bg-red-500/10 rounded-sm';
-                        }
-
-                        return (
-                            <span
-                                key={i}
-                                className={`${color} transition-colors duration-150 relative`}
-                                id={isCurrent ? 'typing-cursor' : undefined}
-                            >
-                                {char}
-                                {isCurrent && (
-                                    <motion.span
-                                        layoutId="cursor"
-                                        className="absolute -bottom-1 left-0 w-full h-1 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: [0.4, 1, 0.4] }}
-                                        transition={{ repeat: Infinity, duration: 1 }}
-                                    />
-                                )}
-                            </span>
-                        );
-                    })}
+                    {renderedChars}
                 </div>
 
                 {/* Focus Warning Overlay */}
@@ -185,9 +191,27 @@ export default function TypingArea() {
                 autoFocus
             />
 
-            <div className={`mt-6 flex justify-between items-center px-4 transition-opacity duration-500 ${focusMode && isActive && focus ? 'opacity-0' : 'opacity-100'}`}>
-                <div className="text-sm text-muted-foreground bg-white/5 px-4 py-2 rounded-full border border-white/10">
-                    Source: <span className="text-white font-medium">{article?.source || 'Unknown'}</span>
+            <div className={`mt-6 flex flex-col md:flex-row justify-between items-center px-4 gap-4 transition-opacity duration-500 ${focusMode && isActive && focus ? 'opacity-0' : 'opacity-100'}`}>
+                <div className="flex flex-wrap gap-3 items-center">
+                    <div className="text-sm text-muted-foreground bg-white/5 px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span className="text-white font-medium">
+                            {article?.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            }) : 'Recent'}
+                        </span>
+                    </div>
+                    <a
+                        href={article?.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-muted-foreground bg-white/5 px-4 py-2 rounded-full border border-white/10 hover:bg-white/10 hover:text-primary transition-all flex items-center gap-2 group"
+                    >
+                        Source: <span className="text-white font-medium group-hover:text-primary">{article?.source || 'Link'}</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
                 </div>
                 <div className="flex gap-6 items-center">
                     <button

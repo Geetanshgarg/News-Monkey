@@ -1,0 +1,18 @@
+model TypingResult {
+  id                String   @id @default(cuid())
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articleTitle      String
+  articleSource     String
+  articleUrl        String
+  wpm               Int
+  accuracy          Int
+  errors            Int
+  totalCharsTyped   Int
+  category          String
+  publishedAt       DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@map("typing_result")
+}

@@ -73,6 +73,35 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Section Specific Themes */
+[data-theme="practice"] {
+  --primary: oklch(0.7 0.2 250);
+  /* Cyan/Blue Focus */
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.7 0.2 250 / 50%);
+}
+
+[data-theme="dashboard"] {
+  --primary: oklch(0.65 0.25 300);
+  /* Purple/Indigo Stats */
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.65 0.25 300 / 50%);
+}
+
+[data-theme="settings"] {
+  --primary: oklch(0.75 0.15 45);
+  /* Amber/Orange Config */
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.75 0.15 45 / 50%);
+}
+
+[data-theme="home"] {
+  --primary: oklch(0.8 0.15 170);
+  /* Fresh Teal/Green */
+  --primary-foreground: oklch(0.1 0 0);
+  --ring: oklch(0.8 0.15 170 / 50%);
+}
+
 @theme inline {
   --font-sans: "Inter Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -119,15 +148,18 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply font-sans bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
 }
 
 @layer utilities {
+
   /* Custom gradient text */
   .gradient-text {
     @apply bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent;
@@ -150,6 +182,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -157,9 +190,12 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -172,4 +208,3 @@
 .animate-pulse-glow {
   animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-

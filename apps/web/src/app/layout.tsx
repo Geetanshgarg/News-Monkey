@@ -5,6 +5,7 @@ import Providers from "@/components/providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ThreeBackground from "@/components/ThreeBackground";
+import ThemeManager from "@/components/ThemeManager";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${outfit.variable} antialiased min-h-screen flex flex-col`}>
         <Providers>
           <ThreeBackground />
+          <ThemeManager />
           <Navbar />
           <main className="flex-grow pt-16">
             {children}
