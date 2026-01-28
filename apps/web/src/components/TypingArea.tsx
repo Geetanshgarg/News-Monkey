@@ -107,13 +107,13 @@ export default function TypingArea() {
         return words.map((word, wordIdx) => (
             <span key={wordIdx} className="inline-block">
                 {word.map(({ char, index: i }) => {
-                    let color = 'text-muted-foreground/30';
+                    let color = 'text-muted-foreground/40';
                     const isTyped = i < userInput.length;
                     const isCorrect = isTyped && userInput[i] === text[i];
                     const isCurrent = i === userInput.length;
 
                     if (isTyped) {
-                        color = isCorrect ? 'text-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]' : 'text-red-500 bg-red-500/10 rounded-sm';
+                        color = isCorrect ? 'text-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]' : 'text-destructive bg-destructive/10 rounded-sm';
                     }
 
                     return (
@@ -144,8 +144,8 @@ export default function TypingArea() {
                 ref={scrollRef}
                 onClick={() => inputRef.current?.focus()}
                 className={`relative min-h-[300px] max-h-[400px] overflow-y-auto p-12 rounded-[2.5rem] border transition-all duration-500 cursor-text scrollbar-hide ${focus
-                    ? 'bg-black/60 border-primary/40 shadow-[0_0_80px_rgba(59,130,246,0.1)] ring-1 ring-primary/20'
-                    : 'bg-black/20 border-white/5 shadow-xl'
+                    ? 'bg-card/80 border-primary/40 shadow-[0_0_80px_rgba(59,130,246,0.1)] ring-1 ring-primary/20 backdrop-blur-sm'
+                    : 'bg-card/40 border-border/50 shadow-xl'
                     }`}
             >
                 <div className={`relative text-2xl md:text-3xl font-medium leading-relaxed tracking-tight select-none transition-all ${focusMode && isActive ? 'opacity-100' : 'opacity-80 hover:opacity-100'}`}>
@@ -154,7 +154,7 @@ export default function TypingArea() {
 
                 {/* Focus Warning Overlay */}
                 {!focus && !isFinished && isActive && (
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center z-20 transition-all">
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center z-20 transition-all">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -164,7 +164,7 @@ export default function TypingArea() {
                                 <Keyboard className="w-8 h-8" />
                             </div>
                             <div className="space-y-2">
-                                <p className="text-2xl font-black font-outfit">Focus Required</p>
+                                <p className="text-2xl font-black font-outfit text-foreground">Focus Required</p>
                                 <p className="text-muted-foreground">Click anywhere to resume your session</p>
                             </div>
                         </motion.div>
@@ -173,7 +173,7 @@ export default function TypingArea() {
 
                 {/* Anti-cheat Overlay */}
                 {cheatWarning && isPaused && !focus && (
-                    <div className="absolute inset-x-0 top-0 p-4 bg-red-500/20 border-b border-red-500/30 backdrop-blur-md text-center text-xs font-bold uppercase tracking-widest text-red-500 z-30">
+                    <div className="absolute inset-x-0 top-0 p-4 bg-destructive/10 border-b border-destructive/20 backdrop-blur-md text-center text-xs font-bold uppercase tracking-widest text-destructive z-30">
                         Tab switch detected. Test paused to ensure accuracy.
                     </div>
                 )}
@@ -193,9 +193,9 @@ export default function TypingArea() {
 
             <div className={`mt-6 flex flex-col md:flex-row justify-between items-center px-4 gap-4 transition-opacity duration-500 ${focusMode && isActive && focus ? 'opacity-0' : 'opacity-100'}`}>
                 <div className="flex flex-wrap gap-3 items-center">
-                    <div className="text-sm text-muted-foreground bg-white/5 px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+                    <div className="text-sm text-muted-foreground bg-secondary/50 px-4 py-2 rounded-full border border-border flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span className="text-white font-medium">
+                        <span className="text-foreground font-medium">
                             {article?.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
@@ -207,9 +207,9 @@ export default function TypingArea() {
                         href={article?.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-muted-foreground bg-white/5 px-4 py-2 rounded-full border border-white/10 hover:bg-white/10 hover:text-primary transition-all flex items-center gap-2 group"
+                        className="text-sm text-muted-foreground bg-secondary/50 px-4 py-2 rounded-full border border-border hover:bg-accent hover:text-accent-foreground transition-all flex items-center gap-2 group"
                     >
-                        Source: <span className="text-white font-medium group-hover:text-primary">{article?.source || 'Link'}</span>
+                        Source: <span className="text-foreground font-medium group-hover:text-primary">{article?.source || 'Link'}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                 </div>

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface Article {
   title: string;
@@ -11,12 +12,16 @@ interface Article {
 
 export interface HistoryItem {
   id: string;
-  article: Article;
   wpm: number;
   accuracy: number;
   cpm: number;
   date: string;
   region: 'us' | 'in';
+  article: {
+    title: string;
+    source: string;
+    url: string;
+  };
 }
 
 interface TypingState {
@@ -53,7 +58,7 @@ interface TypingState {
   soundProfile: 'mechanical' | 'clicky' | 'thock' | 'blaster' | 'lightsaber';
   focusMode: boolean;
 
-  // Persistence
+  // History
   history: HistoryItem[];
 
   // Actions
@@ -73,10 +78,9 @@ interface TypingState {
   repeatArticle: () => void;
   setTimeLeft: (time: number) => void;
   setRegion: (region: 'us' | 'in') => void;
+  addResultToHistory: () => void;
   clearHistory: () => void;
 }
-
-import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const useTypingStore = create<TypingState>()(
   persist(
@@ -104,9 +108,9 @@ export const useTypingStore = create<TypingState>()(
       focusMode: false,
       history: [],
 
-      setDuration: (duration) => set({ duration, timeLeft: duration }),
-      setCategory: (category) => set({ category }),
-      setArticle: (article) => set({ article, userInput: '', cursorIndex: 0, errors: 0, isActive: false, isFinished: false }),
+      setDuration: (duration: number) => set({ duration, timeLeft: duration }),
+      setCategory: (category: string) => set({ category }),
+      setArticle: (article: Article) => set({ article, userInput: '', cursorIndex: 0, errors: 0, isActive: false, isFinished: false }),
 
       startTest: () => set({
         startTime: Date.now(),
@@ -144,27 +148,9 @@ export const useTypingStore = create<TypingState>()(
       }),
 
       finishTest: () => {
-        const { calculateStats, article, wpm, accuracy, cpm, region, history } = get();
-        calculateStats();
-
-        // Final stats might need one last update if finishTest is called immediately after last char
-        const now = Date.now();
-        const stats = get(); // grab latest after calculateStats
-
-        if (article) {
-          const newItem: HistoryItem = {
-            id: Math.random().toString(36).substr(2, 9),
-            article,
-            wpm: stats.wpm,
-            accuracy: stats.accuracy,
-            cpm: stats.cpm,
-            date: new Date().toISOString(),
-            region
-          };
-          set({ history: [newItem, ...history].slice(0, 50) }); // Keep last 50
-        }
-
-        set({ isFinished: true, isActive: false, endTime: now });
+        get().calculateStats();
+        set({ isFinished: true, isActive: false, endTime: Date.now() });
+        get().addResultToHistory();
       },
 
       updateInput: (input: string) => {
@@ -208,7 +194,6 @@ export const useTypingStore = create<TypingState>()(
 
         if (timeElapsedMinutes <= 0) return;
 
-        // Standard WPM calculation: (characters / 5) / minutes
         const wpm = Math.round((correctCharsTyped / 5) / timeElapsedMinutes);
         const cpm = Math.round(correctCharsTyped / timeElapsedMinutes);
         const accuracy = totalCharsTyped > 0
@@ -222,8 +207,7 @@ export const useTypingStore = create<TypingState>()(
       setSoundProfile: (soundProfile) => set({ soundProfile }),
       toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
       repeatArticle: () => {
-        const { article } = get();
-        if (article) {
+        if (get().article) {
           set({
             userInput: '',
             cursorIndex: 0,
@@ -239,18 +223,42 @@ export const useTypingStore = create<TypingState>()(
           });
         }
       },
-      setTimeLeft: (timeLeft) => set({ timeLeft }),
-      setRegion: (region) => set({ region }),
-      clearHistory: () => set({ history: [] })
+      setTimeLeft: (timeLeft: number) => set({ timeLeft }),
+      setRegion: (region: 'us' | 'in') => set({ region }),
+
+      addResultToHistory: () => {
+        const { wpm, accuracy, cpm, article, region } = get();
+        if (!article) return;
+
+        const newItem: HistoryItem = {
+          id: Math.random().toString(36).substring(2, 11),
+          wpm,
+          accuracy,
+          cpm,
+          date: new Date().toISOString(),
+          region,
+          article: {
+            title: article.title,
+            source: article.source,
+            url: article.url
+          }
+        };
+
+        set(state => ({
+          history: [newItem, ...state.history].slice(0, 50) // Keep last 50 results
+        }));
+      },
+
+      clearHistory: () => set({ history: [] }),
     }),
     {
       name: 'news-monkey-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        history: state.history,
         soundEnabled: state.soundEnabled,
         soundProfile: state.soundProfile,
-        focusMode: state.focusMode
+        focusMode: state.focusMode,
+        history: state.history
       }),
     }
   )
