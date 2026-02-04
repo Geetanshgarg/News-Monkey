@@ -4,13 +4,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
 const isProduction = env.NODE_ENV === "production";
-const allowedOrigins = [
-  "http://localhost:3001",
-  "http://localhost:5173",
-  "https://typenews.in",
-  "https://www.typenews.in",
-  "https://news-monkey.vercel.app", // keep this too
-];
+const allowedOrigins = env.CORS_ORIGIN;
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {

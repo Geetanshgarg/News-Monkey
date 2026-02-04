@@ -3,12 +3,13 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsdown",
+    "postinstall": "npm run db:generate",
+    "build": "npm run db:generate && tsdown",
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "npx tsx watch src/index.ts",
-    "start": "node dist/index.mjs"
-
+    "start": "node dist/index.mjs",
+    "db:generate": "cd ../../packages/db && npm run db:generate"
   },
   "dependencies": {
     "@News-Monkey/auth": "*",
