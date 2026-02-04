@@ -21,12 +21,12 @@
     "@prisma/client": "^7.1.0",
     "dotenv": "^17.2.2",
     "pg": "^8.16.3",
+    "prisma": "^7.1.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
     "@News-Monkey/config": "*",
     "@types/pg": "^8.15.6",
-    "prisma": "^7.1.0",
     "typescript": "^5"
   }
 }
