@@ -1,5 +1,4 @@
-import { env } from "@News-Monkey/env/client";
-const SERVER_URL = env.NEXT_PUBLIC_SERVER_URL;
+const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
 /**
  * Fetch news from our backend server (Direct Fetch)
