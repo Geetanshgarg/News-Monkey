@@ -9,25 +9,41 @@ import rateLimit from "express-rate-limit";
 
 const app = express();
 
-const allowedOrigins = [
-  env.CORS_ORIGIN
-];
+const allowedOrigins = env.CORS_ORIGIN;
 
+// Parse JSON bodies FIRST
+app.use(express.json());
+
+// Configure CORS with proper settings for authentication
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps, Postman, curl)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        console.warn(`CORS: Blocked origin ${origin}`);
+        callback(new Error(`Not allowed by CORS: ${origin}`));
       }
     },
-    credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, // Allow cookies
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "Set-Cookie",
+      "X-Requested-With"
+    ],
+    exposedHeaders: ["Set-Cookie"],
+    maxAge: 86400, // Cache preflight for 24 hours
   })
 );
-
 
 // Rate limiting for APIs
 const apiLimiter = rateLimit({
@@ -36,8 +52,8 @@ const apiLimiter = rateLimit({
   message: "Too many requests from this IP, please try again after 15 minutes"
 });
 
+// Mount Better Auth handler - use app.use for middleware mounting
 app.use("/api/auth", toNodeHandler(auth));
-app.use(express.json());
 
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).send("OK");
