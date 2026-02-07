@@ -28,10 +28,15 @@ export async function requireAuth(
         // console.log('[Auth] Cookie header:', req.headers.cookie ? 'Present' : 'Missing');
 
         // Get the session token from cookies
-        const sessionToken = req.headers.cookie
-            ?.split('; ')
-            .find(row => row.startsWith('better-auth.session_token='))
-            ?.split('=')[1];
+        const cookies = req.headers.cookie?.split('; ') ?? [];
+
+        const sessionToken =cookies.find(row =>
+            row.startsWith('__Secure-better-auth.session_token=')
+        )?.split('=')[1] ??
+        cookies.find(row =>
+            row.startsWith('better-auth.session_token=')
+        )?.split('=')[1];
+
 
         if (!sessionToken) {
             console.log('[Auth] No session token found in cookies');
